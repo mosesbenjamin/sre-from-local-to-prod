@@ -19,6 +19,7 @@ type config struct {
 	Server struct {
 		Address string
 	}
+	JWTSecret string
 }
 
 func loadEnvConfig() (config, error) {
@@ -40,6 +41,12 @@ func loadEnvConfig() (config, error) {
 		return cfg, fmt.Errorf("no PSQL config provided")
 	}
 	cfg.Server.Address = os.Getenv("SERVER_ADDRESS")
+
+	cfg.JWTSecret = os.Getenv("JWT_SECRET")
+	if cfg.JWTSecret == "" {
+		return cfg, fmt.Errorf("no JWT_SECRET config provided")
+	}
+
 	return cfg, nil
 }
 
@@ -56,10 +63,7 @@ func run(cfg config) error {
 	}
 
 	dbQueries := database.New(db)
-
-	apiCfg := config{
-		DB: dbQueries,
-	}
+	cfg.DB = dbQueries
 
 	router := chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{
@@ -72,13 +76,25 @@ func run(cfg config) error {
 	}))
 
 	apiRouter := chi.NewRouter()
+
 	apiRouter.Get("/healthcheck", handleReadiness)
-	apiRouter.Post("/students", apiCfg.handlerStudentsCreate)
-	apiRouter.Get("/students", apiCfg.handlerGetStudents)
+
+	apiRouter.Post("/login", cfg.handlerLogin)
+
+	apiRouter.Post("/students", cfg.handlerStudentsCreate)
+	apiRouter.Get("/students", cfg.handlerGetStudents)
+	apiRouter.Get("/students/{studentID}", cfg.middlewareAuth(cfg.handlerStudentGet))
+	apiRouter.Delete("/students/{studentID}", cfg.middlewareAuth(cfg.handlerStudentDelete))
+	apiRouter.Put("/students/{studentID}", cfg.middlewareAuth(cfg.handlerUpdateStudentPassword))
+
+	// Logical nesting on endpoints and API versioning
 	router.Mount("/api/v1", apiRouter)
 
+	adminRouter := chi.NewRouter()
+	router.Mount("/admin", adminRouter)
+
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%s", cfg.Server.Address),
+		Addr:    cfg.Server.Address,
 		Handler: router,
 	}
 

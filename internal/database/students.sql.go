@@ -13,16 +13,17 @@ import (
 )
 
 const createStudent = `-- name: CreateStudent :one
-INSERT INTO students(id, created_at, updated_at, name)
-VALUES ($1, $2, $3, $4)
-RETURNING id, created_at, updated_at, name
+INSERT INTO students(id, created_at, updated_at, email, password)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, created_at, updated_at, email, password
 `
 
 type CreateStudentParams struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Name      string
+	Email     string
+	Password  string
 }
 
 func (q *Queries) CreateStudent(ctx context.Context, arg CreateStudentParams) (Student, error) {
@@ -30,24 +31,69 @@ func (q *Queries) CreateStudent(ctx context.Context, arg CreateStudentParams) (S
 		arg.ID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
-		arg.Name,
+		arg.Email,
+		arg.Password,
 	)
 	var i Student
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Name,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
+}
+
+const deleteStudent = `-- name: DeleteStudent :exec
+DELETE FROM students WHERE id = $1
+`
+
+func (q *Queries) DeleteStudent(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteStudent, id)
+	return err
+}
+
+const getStudentByEmail = `-- name: GetStudentByEmail :one
+SELECT id, created_at, updated_at, email, password FROM students WHERE email = $1
+`
+
+func (q *Queries) GetStudentByEmail(ctx context.Context, email string) (Student, error) {
+	row := q.db.QueryRowContext(ctx, getStudentByEmail, email)
+	var i Student
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
+}
+
+const getStudentById = `-- name: GetStudentById :one
+SELECT id, created_at, updated_at, email, password FROM students WHERE id = $1
+`
+
+func (q *Queries) GetStudentById(ctx context.Context, id uuid.UUID) (Student, error) {
+	row := q.db.QueryRowContext(ctx, getStudentById, id)
+	var i Student
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.Password,
 	)
 	return i, err
 }
 
 const getStudents = `-- name: GetStudents :many
-SELECT id, created_at, updated_at, name FROM students
+SELECT id, created_at, updated_at, email, password FROM students ORDER BY created_at DESC LIMIT $1
 `
 
-func (q *Queries) GetStudents(ctx context.Context) ([]Student, error) {
-	rows, err := q.db.QueryContext(ctx, getStudents)
+func (q *Queries) GetStudents(ctx context.Context, limit int32) ([]Student, error) {
+	rows, err := q.db.QueryContext(ctx, getStudents, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +105,8 @@ func (q *Queries) GetStudents(ctx context.Context) ([]Student, error) {
 			&i.ID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Name,
+			&i.Email,
+			&i.Password,
 		); err != nil {
 			return nil, err
 		}
@@ -72,4 +119,26 @@ func (q *Queries) GetStudents(ctx context.Context) ([]Student, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateStudentPassword = `-- name: UpdateStudentPassword :one
+UPDATE students SET password = $2 WHERE id = $1 RETURNING id, created_at, updated_at, email, password
+`
+
+type UpdateStudentPasswordParams struct {
+	ID       uuid.UUID
+	Password string
+}
+
+func (q *Queries) UpdateStudentPassword(ctx context.Context, arg UpdateStudentPasswordParams) (Student, error) {
+	row := q.db.QueryRowContext(ctx, updateStudentPassword, arg.ID, arg.Password)
+	var i Student
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
 }

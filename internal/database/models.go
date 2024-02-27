@@ -14,5 +14,6 @@ type Student struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Name      string
+	Email     string
+	Password  string
 }

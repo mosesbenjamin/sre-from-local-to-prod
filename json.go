@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// Accept JSON
 func respondWithJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	data, err := json.Marshal(payload)
@@ -18,6 +19,7 @@ func respondWithJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Write(data)
 }
 
+// Respond with JSON
 func respondWithError(w http.ResponseWriter, code int, msg string) {
 	if code > 499 {
 		log.Printf("Responding with 5xx error: %s", msg)

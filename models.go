@@ -11,7 +11,8 @@ type Student struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Password  string    `json:"-"`
 }
 
 func databaseStudentToStudent(student database.Student) Student {
@@ -19,7 +20,7 @@ func databaseStudentToStudent(student database.Student) Student {
 		ID:        student.ID,
 		CreatedAt: student.CreatedAt,
 		UpdatedAt: student.UpdatedAt,
-		Name:      student.Name,
+		Email:     student.Email,
 	}
 }
 
