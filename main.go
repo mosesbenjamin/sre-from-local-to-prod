@@ -9,17 +9,56 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	"github.com/mosesbenjamin/sre-from-local-to-prod/internal/database"
+	"github.com/mosesbenjamin/sre-from-local-to-prod/sql/schema"
 )
 
-func main() {
-	err := godotenv.Load(".env")
+type config struct {
+	PSQL   schema.PostgresConfig
+	DB     *database.Queries
+	Server struct {
+		Address string
+	}
+}
+
+func loadEnvConfig() (config, error) {
+	var cfg config
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		return cfg, err
 	}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatalf("%s environment variable is not set", port)
+	cfg.PSQL = schema.PostgresConfig{
+		Host:     os.Getenv("PSQL_HOST"),
+		Port:     os.Getenv("PSQL_PORT"),
+		User:     os.Getenv("PSQL_USER"),
+		Password: os.Getenv("PSQL_PASSWORD"),
+		Database: os.Getenv("PSQL_DATABASE"),
+		SSLMode:  os.Getenv("PSQL_SSLMODE"),
+	}
+	if cfg.PSQL.Host == "" && cfg.PSQL.Port == "" {
+		return cfg, fmt.Errorf("no PSQL config provided")
+	}
+	cfg.Server.Address = os.Getenv("SERVER_ADDRESS")
+	return cfg, nil
+}
+
+func run(cfg config) error {
+	db, err := schema.Open(cfg.PSQL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = schema.MigrateFS(db, schema.FS, ".")
+	if err != nil {
+		return err
+	}
+
+	dbQueries := database.New(db)
+
+	apiCfg := config{
+		DB: dbQueries,
 	}
 
 	router := chi.NewRouter()
@@ -34,13 +73,27 @@ func main() {
 
 	apiRouter := chi.NewRouter()
 	apiRouter.Get("/healthcheck", handleReadiness)
+	apiRouter.Post("/students", apiCfg.handlerStudentsCreate)
+	apiRouter.Get("/students", apiCfg.handlerGetStudents)
 	router.Mount("/api/v1", apiRouter)
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%s", port),
+		Addr:    fmt.Sprintf(":%s", cfg.Server.Address),
 		Handler: router,
 	}
 
-	log.Printf("Starting server on port %s", port)
+	log.Printf("Starting server on port %s...\n", cfg.Server.Address)
 	log.Fatal(srv.ListenAndServe())
+	return nil
+}
+
+func main() {
+	cfg, err := loadEnvConfig()
+	if err != nil {
+		panic(err)
+	}
+	err = run(cfg)
+	if err != nil {
+		panic(err)
+	}
 }
