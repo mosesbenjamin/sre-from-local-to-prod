@@ -18,16 +18,26 @@ The Go programming language has been selected to complete this milestone, alongs
 - goose (Optional)
 
 #### Quickstart
-Run `make help` for a list of commands useful to run the REST API Webserver.
+From the project root directory:
 
-`make run` starts the webserver and you can start interacting with the API on http://localhost:8080/api/v1/. Please see [the postman documentation](#postman-api-documentation) for a list of supportted API endpoints.
+Run
+```
+make help
+```
+... for a list of commands useful to run the REST API Webserver.
+Create a .env file and copy the contents of [.env.template](.env.template) unto it, and set the values as appropriate.
+
+```
+make run
+```
+... starts the webserver and you can start interacting with the API on http://localhost:8080/api/v1/. Please see [the postman documentation](#postman-api-documentation) for a list of supportted API endpoints.
 
 Adminer is available at http://localhost:3333 to manage the postgres database created as part of the application setup.
 
 #### Postman API Documentation
 The API Documemtation is available via [this Postman Link](https://www.postman.com/mavewrick/workspace/public/collection/11230844-3adc49ff-fd4c-47a1-a2c7-895c642f33f6?action=share&source=copy-link&creator=0)
 
-### What was covered in this implementation
+### Design
 #### Functional Requirement
 Using the API we can.
 - [x] Add a new student.
@@ -54,9 +64,12 @@ README.md file explaining the purpose of the repo, along with local setup instru
 - [ ] Unit tests for different endpoints.
 
 ### Additional features
-- [ ] [Fully conforms with the twelve-factor app methodology](https://12factor.net/)
+- [x] [Fully conforms with the twelve-factor app methodology](https://12factor.net/)
 - [x] [Follows Best Practices for REST API design](https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/)
 - [x] Password + ID Authentication
 - [ ] Third Party Authentication with Auth0 
 - [ ] API Keys Authentication for Webhooks
 - [ ] Caching with redis
+
+### Contributors
+- Sunday Moses Benjamin mavewreek@gmail.com
